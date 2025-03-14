@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using OrdersApp;
+﻿
+using System;
 
-namespace OrderProcessingApp
+namespace OrdersApp
 {
     class Program
     {
-        static List<Order> orders = new List<Order>();
+        static readonly List<Order> orders = new List<Order>();
+        static readonly OrderService orderService = new OrderService(orders);
 
         static void Main(string[] args)
         {
@@ -14,89 +14,46 @@ namespace OrderProcessingApp
             {
                 Console.WriteLine("\n1. create sample order\n2. send to warehouse\n3. send to shipping\n4. view orders\n5. exit");
                 Console.Write("choose an option: ");
-                string choice = Console.ReadLine();
-
-                switch (choice)
+                if (!int.TryParse(Console.ReadLine(), out int option) || option < 1 || option > 5)
                 {
-                    case "1":
-                        CreateSampleOrder();
-                        break;
-                    case "2":
-                        SendToWarehouse();
-                        break;
-                    case "3":
-                        SendToShipping();
-                        break;
-                    case "4":
-                        ViewOrders();
-                        break;
-                    case "5":
-                        return;
-                    default:
-                        Console.WriteLine("Invalid option.");
-                        break;
+                    Console.WriteLine("please enter a valid option (1-5).");
+                    continue;
                 }
-            }
-        }
-        static void CreateSampleOrder()
-        {
-            var order = new Order(1000m, "laptop", ClientType.Individual, "15 ulica", PaymentMethod.Card);
-            orders.Add(order);
-            Console.WriteLine("sample order created.");
-        }
-        static void SendToWarehouse()
-        {
-            if (orders.Count == 0)
-            {
-                Console.WriteLine("no orders available.");
-                return;
-            }
 
-            var order = orders[0];
-            if (string.IsNullOrEmpty(order.DeliveryAddress))
-            {
-                order.Status = OrderStatus.Error;
-                Console.WriteLine("order has no delivery address. error.");
-            }
-            else if (order.Amount >= 2500m && order.PaymentMethod == PaymentMethod.CashOnDelivery)
-            {
-                order.Status = OrderStatus.ReturnedToClient;
-                Console.WriteLine("order over 2500 with cash on delivery. returned.");
-            }
-            else
-            {
-                order.Status = OrderStatus.InWarehouse;
-                Console.WriteLine("order sent to warehouse.");
-            }
-        }
-
-        static void SendToShipping()
-        {
-            if (orders.Count == 0 || orders[0].Status != OrderStatus.InWarehouse)
-            {
-                Console.WriteLine("no orders in warehouse.");
-                return;
-            }
-
-            var order = orders[0];
-            order.Status = OrderStatus.InShipping;
-            Console.WriteLine("order sent to shipping. wait");
-            Thread.Sleep(5000); // Simulate 5-second delay
-            order.Status = OrderStatus.Closed;
-            Console.WriteLine("order shipped & closed.");
-        }
-
-        static void ViewOrders()
-        {
-            if (orders.Count == 0)
-            {
-                Console.WriteLine("no orders available.");
-                return;
-            }
-
-            foreach (var order in orders)
-            {
-                Console.WriteLine($"product: {order.ProductName}, amount: {order.Amount}, status: {order.Status}");
+                switch (option)
+                {
+                    case 1:
+                        orderService.CreateSampleOrder();
+                        Console.WriteLine("sample order created.");
+                        break;
+                    case 2:
+                        if (orders.Count == 0) Console.WriteLine("no orders available.");
+                        else 
+                        { 
+                            if (orderService.SendToWarehouse(orders[0]))
+                                Console.WriteLine("order sent to warehouse."); 
+                            else
+                                Console.WriteLine("failed to send to warehouse.");
+                        }
+                        break;
+                    case 3:
+                        if (orders.Count == 0) Console.WriteLine("no orders available.");
+                        else
+                        {
+                            if (orderService.SendToShipping(orders[0]))
+                                Console.WriteLine("order shipped and closed.");
+                            else
+                                Console.WriteLine("failed to send to shipping.");
+                        }
+                        break;
+                    case 4:
+                        var ordersList = orderService.GetOrders();
+                        if (ordersList.Count == 0) Console.WriteLine("no orders available.");
+                        else foreach (var order in ordersList) Console.WriteLine($"product: {order.ProductName}, amot: {order.Amount}, status: {order.Status}");
+                        break;
+                    case 5:
+                        return;
+                }
             }
         }
     }
