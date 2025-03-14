@@ -19,3 +19,12 @@ jobs:
           run: dotnet build OrderProcessingApp.sln --no-restore
         - name: Test
           run: dotnet test OrderProcessingApp.sln --no-build --verbosity normal
+        - name: Publish
+          if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+          run: dotnet publish OrderProcessingApp.sln -c Release -o ./publish
+        - name: Upload Artifact
+          if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+          uses: actions/upload-artifact@v3
+          with:
+            name: OrderProcessingApp
+            path: ./publish/
