@@ -1,3 +1,4 @@
+// OrderTests.cs
 using Xunit;
 using OrdersApp;
 
@@ -8,34 +9,56 @@ namespace OrdersApp.Tests
         [Fact]
         public void Order_Initialization_SetsPropertiesCorrectly()
         {
-            // Arrange
-            decimal amount = 1000m;
-            string productName = "Laptop";
-            ClientType clientType = ClientType.Individual;
-            string deliveryAddress = "123 Main St";
-            PaymentMethod paymentMethod = PaymentMethod.Card;
-
-            // Act
-            var order = new Order(amount, productName, clientType, deliveryAddress, paymentMethod);
-
-            // Assert
-            Assert.Equal(amount, order.Amount);
-            Assert.Equal(productName, order.ProductName);
-            Assert.Equal(clientType, order.ClientType);
-            Assert.Equal(deliveryAddress, order.DeliveryAddress);
-            Assert.Equal(paymentMethod, order.PaymentMethod);
-            Assert.Equal(OrderStatus.New, order.Status); // Default status
+            var order = new Order(1000m, "laptop", ClientType.Individual, "13 ulica", PaymentMethod.Card);
+            Assert.Equal(1000m, order.Amount);
+            Assert.Equal("laptop", order.ProductName);
+            Assert.Equal(ClientType.Individual, order.ClientType);
+            Assert.Equal("13 ulica", order.DeliveryAddress);
+            Assert.Equal(PaymentMethod.Card, order.PaymentMethod);
+            Assert.Equal(OrderStatus.New, order.Status);
         }
 
         [Fact]
-        public void Order_Initialization_WithEmptyDeliveryAddress_SetsNewStatus()
+        public void SendToWarehouse_CashOnDeliveryOver2500_ReturnsToClient()
         {
-            // Arrange & Act
-            var order = new Order(500m, "Book", ClientType.Company, "", PaymentMethod.CashOnDelivery);
+            var orders = new List<Order>();
+            var service = new OrderService(orders);
+            var order = new Order(3000m, "speaker", ClientType.Individual, "15 ulica", PaymentMethod.CashOnDelivery);
+            orders.Add(order);
 
-            // Assert
-            Assert.Equal("", order.DeliveryAddress);
-            Assert.Equal(OrderStatus.New, order.Status); // Still sets to New, error handling comes later
+            var result = service.SendToWarehouse(order);
+
+            Assert.False(result);
+            Assert.Equal(OrderStatus.ReturnedToClient, order.Status);
+        }
+
+        [Fact]
+        public void SendToWarehouse_NoDeliveryAddress_SetsError()
+        {
+            var orders = new List<Order>();
+            var service = new OrderService(orders);
+            var order = new Order(500m, "book", ClientType.Company, "", PaymentMethod.Card);
+            orders.Add(order);
+
+            var result = service.SendToWarehouse(order);
+
+            Assert.False(result);
+            Assert.Equal(OrderStatus.Error, order.Status);
+        }
+
+        [Fact]
+        public void SendToShipping_FromWarehouse_ClosesAfterDelay()
+        {
+            var orders = new List<Order>();
+            var service = new OrderService(orders);
+            var order = new Order(1000m, "laptop", ClientType.Individual, "15 ulica", PaymentMethod.Card);
+            order.Status = OrderStatus.InWarehouse;
+            orders.Add(order);
+
+            var result = service.SendToShipping(order);
+
+            Assert.True(result);
+            Assert.Equal(OrderStatus.Closed, order.Status);
         }
     }
 }
