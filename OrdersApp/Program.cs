@@ -23,8 +23,7 @@ namespace OrdersApp
                 switch (option)
                 {
                     case 1:
-                        orderService.CreateSampleOrder();
-                        Console.WriteLine("sample order created.");
+                        orderService.CreateOrderFromInput();
                         break;
                     case 2:
                         if (orders.Count == 0) Console.WriteLine("no orders available.");
